@@ -453,6 +453,22 @@
 			<arg value="--delta"/>
 		</exec>
 	</target>
+
+    <!-- Target used to create database tables -->
+	<target name="update_database_packages" description="updates database packages(necessary for species changes on login.plsql)" if="firstrun">
+		<replace file="build.properties" token="firstrun = true" value="firstrun = false"/>
+		<exec executable="perl" dir="${basedir}/src/game/server/database/build/linux">
+			<env key="PATH" value="${env.PATH}:${tools_home}"/>
+			<arg value="database_update.pl"/>
+			<arg value="--username=${db_username}"/>
+			<arg value="--password=${db_password}"/>
+			<arg value="--service=${dbip}/${db_service}"/>
+			<arg value="--goldusername=${db_username}"/>
+			<arg value="--loginusername=${db_username}"/>
+			<arg value="--packages"/>
+		</exec>
+		<antcall target="update_database"/>
+	</target>
 	
 	<target name="add_new_cluster" description="Adds the cluster name to the database" if="firstrun">
 		<sql classpath="${env.ORACLE_HOME}/lib/ojdbc8.jar"
@@ -734,5 +750,46 @@
 	</target>
 	
 	<!-- End ACM Related targets -->
+
+	    <!-- setup call for swg evolve -->
+		<target name="setup_evolve">
+			<!-- remove regular swg source dsrc/data/client-data -->
+			<delete includeemptydirs="true" removeNotFollowedSymlinks="true" failonerror="false">
+				<fileset dir="${data}" includes="**/*" followsymlinks="false"/>
+			</delete>
+			<delete includeemptydirs="true" removeNotFollowedSymlinks="true" failonerror="false">
+				<fileset dir="${dsrc}" includes="**/*" followsymlinks="false"/>
+			</delete>
+			<delete includeemptydirs="true" removeNotFollowedSymlinks="true" failonerror="false">
+				<fileset dir="${serverdata}" includes="**/*" followsymlinks="false"/>
+			</delete>        
+			<!-- clone repos -->
+			<exec executable="git" dir="${basedir}">
+				<arg line="clone https://github.com/SWGEvolve/dsrc.git dsrc" />
+			</exec>
+			<exec executable="git" dir="${basedir}">
+				<arg line="clone https://github.com/SWGEvolve/serverdata.git" />
+			</exec>
+			<exec executable="git" dir="${basedir}">
+				<arg line="clone https://github.com/SWGEvolve/src.git src" />
+			</exec>
+			<!-- compile -->
+			<antcall target="compile"/>
+		</target>
+		
+		<!-- update call for swg evolve -->
+		<target name="update_evolve">
+			<exec executable="git" dir="${dsrc}">
+				<arg line="pull" />
+			</exec>
+			<exec executable="git" dir="${serverdata}">
+				<arg line="pull" />
+			</exec>
+			<exec executable="git" dir="${src}">
+				<arg line="pull" />
+			</exec>
+			<!-- compile -->
+			<antcall target="compile"/>
+		</target>
 
 </project>
